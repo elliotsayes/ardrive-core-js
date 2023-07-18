@@ -529,15 +529,9 @@ export class ArDrive extends ArDriveAnonymous {
 	}: UploadAllEntitiesParams): Promise<ArFSResult> {
 		const preparedEntities: UploadStats[] = [];
 
+		const owner = await this.wallet.getAddress();
 		for (const entity of entitiesToUpload) {
-			const { destFolderId, driveKey } = entity;
-			const destDriveId = await this.arFsDao.getDriveIdForFolderId(destFolderId);
-
-			// Assert drive privacy and owner of the drive
-			const owner = await this.arFsDao.getOwnerAndAssertDrive(destDriveId, driveKey);
-			await this.assertOwnerAddress(owner);
-
-			preparedEntities.push({ ...entity, destDriveId, owner });
+			preparedEntities.push({ ...entity, owner });
 		}
 
 		const resolvedEntities = await this.resolveBulkNameConflicts({
@@ -844,9 +838,10 @@ export class ArDrive extends ArDriveAnonymous {
 		destinationFileName,
 		prompts
 	}: UploadPublicFileParams): Promise<ArFSResult> {
+		const destDriveId = await this.arFsDao.getDriveIdForFolderId(parentFolderId);
 		return this.uploadAllEntities({
 			entitiesToUpload: [
-				{ destFolderId: parentFolderId, wrappedEntity: wrappedFile, destName: destinationFileName }
+				{ destFolderId: parentFolderId, wrappedEntity: wrappedFile, destName: destinationFileName, destDriveId }
 			],
 			conflictResolution,
 			prompts: prompts as FolderConflictPrompts
@@ -862,9 +857,10 @@ export class ArDrive extends ArDriveAnonymous {
 		conflictResolution,
 		driveKey
 	}: UploadPrivateFileParams): Promise<ArFSResult> {
+		const destDriveId = await this.arFsDao.getDriveIdForFolderId(parentFolderId);
 		return this.uploadAllEntities({
 			entitiesToUpload: [
-				{ destFolderId: parentFolderId, wrappedEntity: wrappedFile, destName: destinationFileName, driveKey }
+				{ destFolderId: parentFolderId, wrappedEntity: wrappedFile, destName: destinationFileName, driveKey, destDriveId }
 			],
 			conflictResolution,
 			prompts: prompts as FolderConflictPrompts
@@ -879,9 +875,10 @@ export class ArDrive extends ArDriveAnonymous {
 		conflictResolution = upsertOnConflicts,
 		prompts
 	}: BulkPublicUploadParams): Promise<ArFSResult> {
+		const destDriveId = await this.arFsDao.getDriveIdForFolderId(parentFolderId);
 		return this.uploadAllEntities({
 			entitiesToUpload: [
-				{ wrappedEntity: wrappedFolder, destFolderId: parentFolderId, destName: destParentFolderName }
+				{ wrappedEntity: wrappedFolder, destFolderId: parentFolderId, destName: destParentFolderName, destDriveId }
 			],
 			conflictResolution,
 			prompts
@@ -897,9 +894,10 @@ export class ArDrive extends ArDriveAnonymous {
 		conflictResolution = upsertOnConflicts,
 		prompts
 	}: BulkPrivateUploadParams): Promise<ArFSResult> {
+		const destDriveId = await this.arFsDao.getDriveIdForFolderId(parentFolderId);
 		return this.uploadAllEntities({
 			entitiesToUpload: [
-				{ wrappedEntity: wrappedFolder, destFolderId: parentFolderId, destName: destParentFolderName, driveKey }
+				{ wrappedEntity: wrappedFolder, destFolderId: parentFolderId, destName: destParentFolderName, driveKey, destDriveId }
 			],
 			conflictResolution,
 			prompts
@@ -931,7 +929,8 @@ export class ArDrive extends ArDriveAnonymous {
 				{
 					wrappedEntity: arweaveManifest,
 					destFolderId: folderId,
-					destName: arweaveManifest.destinationBaseName
+					destName: arweaveManifest.destinationBaseName,
+					destDriveId: driveId
 				}
 			],
 			conflictResolution,
@@ -1004,13 +1003,12 @@ export class ArDrive extends ArDriveAnonymous {
 	public async createPrivateFolder({
 		folderName,
 		driveKey,
-		parentFolderId
+		parentFolderId,
+		driveId
 	}: CreatePrivateFolderParams): Promise<ArFSResult> {
 		assertValidArFSFolderName(folderName);
 
-		const driveId = await this.arFsDao.getDriveIdForFolderId(parentFolderId);
-		const owner = await this.arFsDao.getOwnerAndAssertDrive(driveId, driveKey);
-		await this.assertOwnerAddress(owner);
+		const owner = await this.wallet.getAddress();
 
 		// Assert that there are no duplicate names in the destination folder
 		const entityNamesInParentFolder = await this.arFsDao.getPrivateEntityNamesInFolder(

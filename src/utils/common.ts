@@ -471,7 +471,7 @@ export function weightedRandom(dict: Record<string, number>): string | undefined
 			return addr;
 		}
 	}
-	return;
+	return undefined;
 }
 
 // Ensures a file path does not contain invalid characters

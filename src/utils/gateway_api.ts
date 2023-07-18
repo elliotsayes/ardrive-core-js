@@ -185,7 +185,7 @@ export class GatewayAPI {
 				return resp;
 			}
 
-			this.lastError = resp.statusText ?? resp;
+			this.lastError = resp.statusText ?? resp.toString();
 		} catch (err) {
 			this.lastError = err instanceof Error ? err.message : err;
 		}

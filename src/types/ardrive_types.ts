@@ -100,8 +100,7 @@ export interface CreatePublicManifestParams extends Required<UploadPublicManifes
 export interface CreatePublicFolderParams {
 	folderName: string;
 	parentFolderId: FolderID;
-	/** @deprecated ArFS cache makes passing driveId here redundant. This parameter makes the api confusing and will no longer used */
-	driveId?: DriveID;
+	driveId: DriveID;
 }
 export type CreatePrivateFolderParams = CreatePublicFolderParams & WithDriveKey;
 
@@ -116,11 +115,11 @@ export interface ArDriveUploadStats<T = ArFSDataToUpload | ArFSFolderToUpload> {
 	destFolderId: FolderID;
 	destName?: string;
 	driveKey?: DriveKey;
+	destDriveId: DriveID;
 }
 
 /** Upload stats as determined by the ArDrive class */
 export interface UploadStats<T = ArFSDataToUpload | ArFSFolderToUpload> extends ArDriveUploadStats<T> {
-	destDriveId: DriveID;
 	owner: ArweaveAddress;
 }
 
